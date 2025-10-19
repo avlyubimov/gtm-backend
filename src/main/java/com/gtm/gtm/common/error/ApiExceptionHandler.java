@@ -1,4 +1,4 @@
-package com.gtm.gtm.web;
+package com.gtm.gtm.common.error;
 
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.ResponseEntity;

@@ -1,5 +1,6 @@
 package com.gtm.gtm.user.dto;
 
+import com.gtm.gtm.user.domain.UserRole;
 import com.gtm.gtm.user.domain.UserStatus;
 
 import java.time.LocalDate;
@@ -12,7 +13,7 @@ public record UserDto(
         String phone,
         String email,
         String username,
-        Set<String> roles,
+        Set<UserRole> roles,
         UserStatus status,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt,

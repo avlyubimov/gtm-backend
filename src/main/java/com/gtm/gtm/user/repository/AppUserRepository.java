@@ -1,13 +1,19 @@
 package com.gtm.gtm.user.repository;
 
+import com.gtm.gtm.common.repository.SoftDeleteRepository;
 import com.gtm.gtm.user.domain.AppUser;
-import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface AppUserRepository extends JpaRepository<AppUser, Long> {
+public interface AppUserRepository extends SoftDeleteRepository<AppUser, Long> {
     boolean existsByEmailIgnoreCase(String email);
     boolean existsByUsernameIgnoreCase(String username);
-    boolean existsByPhone(String phone); // E.164
+    boolean existsByPhone(String phone);
     Optional<AppUser> findByEmailIgnoreCase(String email);
+    Optional<AppUser> findByUsernameIgnoreCase(String username);
+
+    default Optional<AppUser> findByLogin(String login) {
+        var byUsername = findByUsernameIgnoreCase(login);
+        return byUsername.isPresent() ? byUsername : findByEmailIgnoreCase(login);
+    }
 }

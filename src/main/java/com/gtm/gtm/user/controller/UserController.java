@@ -12,6 +12,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 
@@ -20,13 +23,15 @@ import java.net.URI;
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
+
     private final UserService service;
 
     @Operation(summary = "Создать пользователя")
-    @ApiResponse(responseCode = "200", description = "OK",
+    @ApiResponse(responseCode = "201", description = "Created",
             content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = UserDto.class)))
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserDto> create(@Valid @RequestBody UserCreateDto dto) {
         var created = service.create(dto);
         return ResponseEntity
@@ -36,12 +41,31 @@ public class UserController {
 
     @Operation(summary = "Получить пользователя по id")
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public UserDto get(@PathVariable Long id) {
         return service.get(id);
     }
 
-    @Operation(summary = "Сменить пароль")
+    // Текущий пользователь из JWT (ожидаем, что sub = userId или email)
+    @Operation(summary = "Текущий пользователь (по JWT)")
+    @GetMapping("/me")
+    public UserDto me(@AuthenticationPrincipal Jwt jwt) {
+        return service.getBySubject(jwt.getSubject());
+    }
+
+    // Смена пароля самим пользователем
+    @Operation(summary = "Сменить свой пароль")
+    @PostMapping("/me/password")
+    public ResponseEntity<Void> changeOwnPassword(@AuthenticationPrincipal Jwt jwt,
+                                                  @Valid @RequestBody ChangePasswordDto req) {
+        service.changePasswordBySubject(jwt.getSubject(), req.newPassword());
+        return ResponseEntity.noContent().build();
+    }
+
+    // Админ меняет пароль любому пользователю
+    @Operation(summary = "Сменить пароль пользователю (ADMIN)")
     @PostMapping("/{id}/password")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> changePassword(@PathVariable Long id,
                                                @Valid @RequestBody ChangePasswordDto req) {
         service.changePassword(id, req.newPassword());

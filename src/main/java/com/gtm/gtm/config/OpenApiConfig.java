@@ -21,13 +21,4 @@ public class OpenApiConfig {
                         .contact(new Contact().name("Team").email("support@example.com")))
                 .addServersItem(new Server().url("http://localhost:8080"));
     }
-
-    // Отдельная вкладка в Swagger только для наших REST ручек
-//    @Bean
-//    public GroupedOpenApi userApi() {
-//        return GroupedOpenApi.builder()
-//                .group("users")
-//                .pathsToMatch("/api/users/**")
-//                .build();
-//    }
 }

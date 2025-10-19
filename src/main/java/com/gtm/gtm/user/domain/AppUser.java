@@ -1,5 +1,6 @@
 package com.gtm.gtm.user.domain;
 
+import com.gtm.gtm.common.domain.SoftDeletable;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -10,6 +11,7 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.Period;
+import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -17,10 +19,7 @@ import java.util.Set;
 @Table(name = "gtm_user")
 @Getter
 @Setter
-public class AppUser {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class AppUser extends SoftDeletable {
 
     @NotBlank
     @Column(name = "full_name", nullable = false)
@@ -59,10 +58,11 @@ public class AppUser {
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(targetClass = UserRole.class, fetch = FetchType.EAGER)
     @CollectionTable(name = "gtm_user_roles", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "role", nullable = false)
-    private Set<String> roles = new LinkedHashSet<>();
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false, length = 32)
+    private Set<UserRole> roles = EnumSet.noneOf(UserRole.class);
 
     @Transient
     public Integer getAge() {
