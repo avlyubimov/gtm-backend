@@ -1,4 +1,4 @@
-package com.gtm.gtm.user.assigment.service;
+package com.gtm.gtm.assigment.service;
 
 import com.gtm.gtm.cycle.domain.Cycle;
 import com.gtm.gtm.cycle.domain.CycleStatus;
@@ -6,11 +6,11 @@ import com.gtm.gtm.cycle.repository.CycleRepository;
 import com.gtm.gtm.facility.repository.FacilityRepository;
 import com.gtm.gtm.measurement.repository.MeasurementRepository;
 import com.gtm.gtm.point.repository.PointRepository;
-import com.gtm.gtm.user.assigment.domain.Assignment;
-import com.gtm.gtm.user.assigment.dto.AssignmentCreateDto;
-import com.gtm.gtm.user.assigment.dto.AssignmentDto;
-import com.gtm.gtm.user.assigment.dto.TodoPointDto;
-import com.gtm.gtm.user.assigment.repository.AssignmentRepository;
+import com.gtm.gtm.assigment.domain.Assignment;
+import com.gtm.gtm.assigment.dto.AssignmentCreateDto;
+import com.gtm.gtm.assigment.dto.AssignmentDto;
+import com.gtm.gtm.assigment.dto.TodoPointDto;
+import com.gtm.gtm.assigment.repository.AssignmentRepository;
 import com.gtm.gtm.user.repository.AppUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 @Service

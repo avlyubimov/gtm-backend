@@ -36,10 +36,4 @@ public class Cycle extends SoftDeletable {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     private CycleStatus status;
-
-//    @Column(name = "is_deleted", nullable = false)
-//    private boolean deleted;
-//    @Column(name = "deleted_at") private OffsetDateTime deletedAt;
-//    @Column(name = "created_at", nullable = false) private OffsetDateTime createdAt;
-//    @Column(name = "updated_at", nullable = false) private OffsetDateTime updatedAt;
 }

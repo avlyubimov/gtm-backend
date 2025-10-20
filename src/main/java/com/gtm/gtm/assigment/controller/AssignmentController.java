@@ -1,10 +1,10 @@
-package com.gtm.gtm.user.assigment.controller;
+package com.gtm.gtm.assigment.controller;
 
 import com.gtm.gtm.common.security.CurrentUser;
-import com.gtm.gtm.user.assigment.dto.AssignmentCreateDto;
-import com.gtm.gtm.user.assigment.dto.AssignmentDto;
-import com.gtm.gtm.user.assigment.dto.TodoPointDto;
-import com.gtm.gtm.user.assigment.service.AssignmentService;
+import com.gtm.gtm.assigment.dto.AssignmentCreateDto;
+import com.gtm.gtm.assigment.dto.AssignmentDto;
+import com.gtm.gtm.assigment.dto.TodoPointDto;
+import com.gtm.gtm.assigment.service.AssignmentService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;

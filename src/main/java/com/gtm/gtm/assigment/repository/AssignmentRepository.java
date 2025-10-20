@@ -1,7 +1,7 @@
-package com.gtm.gtm.user.assigment.repository;
+package com.gtm.gtm.assigment.repository;
 
 import com.gtm.gtm.common.repository.SoftDeleteRepository;
-import com.gtm.gtm.user.assigment.domain.Assignment;
+import com.gtm.gtm.assigment.domain.Assignment;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;

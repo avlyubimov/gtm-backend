@@ -30,16 +30,4 @@ public class Point extends SoftDeletable {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "facility_id", nullable = false)
     private Facility facility;
-
-//    @Column(name = "is_deleted", nullable = false)
-//    private boolean deleted;
-//
-//    @Column(name = "deleted_at")
-//    private OffsetDateTime deletedAt;
-//
-//    @Column(name = "created_at", nullable = false)
-//    private OffsetDateTime createdAt;
-//
-//    @Column(name = "updated_at", nullable = false)
-//    private OffsetDateTime updatedAt;
 }

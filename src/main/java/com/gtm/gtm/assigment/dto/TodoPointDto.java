@@ -1,4 +1,4 @@
-package com.gtm.gtm.user.assigment.dto;
+package com.gtm.gtm.assigment.dto;
 
 public record TodoPointDto(
         Long pointId,

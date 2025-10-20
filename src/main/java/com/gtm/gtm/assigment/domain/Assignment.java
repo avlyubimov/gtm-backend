@@ -1,4 +1,4 @@
-package com.gtm.gtm.user.assigment.domain;
+package com.gtm.gtm.assigment.domain;
 
 import com.gtm.gtm.common.domain.SoftDeletable;
 import com.gtm.gtm.facility.domain.Facility;

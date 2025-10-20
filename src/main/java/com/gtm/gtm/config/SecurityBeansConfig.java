@@ -112,7 +112,7 @@ public class SecurityBeansConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         var cfg = new CorsConfiguration();
-        // Разрешённые origin'ы (подставь свои; в проде лучше вынести в конфиг)
+
         cfg.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "http://localhost:8080",
