@@ -19,6 +19,7 @@ public record UserDto(
         OffsetDateTime updatedAt,
         OffsetDateTime lastLoginAt,
         LocalDate dateOfBirth,
-        Integer age
+        Integer age,
+        String photoUrl
 ) {
 }

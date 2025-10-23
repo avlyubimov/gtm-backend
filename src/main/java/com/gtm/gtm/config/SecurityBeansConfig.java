@@ -116,7 +116,7 @@ public class SecurityBeansConfig {
         cfg.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "http://localhost:8080",
-                "https://university.local"
+                "https://gtm.local"
         ));
         cfg.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
         cfg.setAllowedHeaders(List.of("Authorization","Content-Type","X-API-KEY","Origin","Accept"));

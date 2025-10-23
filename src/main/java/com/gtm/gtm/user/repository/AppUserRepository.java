@@ -9,6 +9,11 @@ public interface AppUserRepository extends SoftDeleteRepository<AppUser, Long> {
     boolean existsByEmailIgnoreCase(String email);
     boolean existsByUsernameIgnoreCase(String username);
     boolean existsByPhone(String phone);
+
+    boolean existsByEmailIgnoreCaseAndIdNot(String email, Long id);
+    boolean existsByUsernameIgnoreCaseAndIdNot(String username, Long id);
+    boolean existsByPhoneAndIdNot(String phone, Long id);
+
     Optional<AppUser> findByEmailIgnoreCase(String email);
     Optional<AppUser> findByUsernameIgnoreCase(String username);
 

@@ -5,16 +5,21 @@ import com.gtm.gtm.auth.repository.RefreshTokenRepository;
 import com.gtm.gtm.user.domain.AppUser;
 import com.gtm.gtm.user.domain.UserRole;
 import com.gtm.gtm.user.domain.UserStatus;
+import com.gtm.gtm.user.dto.UserAdminUpdateDto;
 import com.gtm.gtm.user.dto.UserCreateDto;
 import com.gtm.gtm.user.dto.UserDto;
+import com.gtm.gtm.user.dto.UserSelfUpdateDto;
 import com.gtm.gtm.user.repository.AppUserRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Service
 public class UserService {
@@ -28,6 +33,7 @@ public class UserService {
         this.refreshTokenRepository = refreshTokenRepository;
     }
 
+    // --- Вспомогательные методы валидации ---
     private static String requireE164(String phone) {
         var p = phone == null ? "" : phone.trim();
         if (!p.matches("^\\+\\d{7,15}$"))
@@ -35,6 +41,20 @@ public class UserService {
         return p;
     }
 
+    private static UserDto toDto(AppUser u) {
+        return new UserDto(
+                u.getId(), u.getFullName(), u.getPhone(), u.getEmail(), u.getUsername(),
+                u.getRoles(), u.getStatus(), u.getCreatedAt(), u.getUpdatedAt(), u.getLastLoginAt(),
+                u.getDateOfBirth(), u.getAge(), u.getPhotoUrl()
+        );
+    }
+
+    private static java.util.Optional<Long> parseAsLong(String val) {
+        try { return java.util.Optional.of(Long.parseLong(val)); }
+        catch (Exception ignored) { return java.util.Optional.empty(); }
+    }
+
+    // --- Создание как было ---
     @Transactional
     public UserDto create(UserCreateDto dto) {
         if (repo.existsByEmailIgnoreCase(dto.email()))
@@ -46,7 +66,7 @@ public class UserService {
         if (repo.existsByPhone(phone))
             throw new IllegalArgumentException("Phone already in use");
 
-        AppUser u = new AppUser();
+        var u = new AppUser();
         u.setFullName(dto.fullName().trim());
         u.setPhone(phone);
         u.setEmail(dto.email().trim());
@@ -54,12 +74,9 @@ public class UserService {
         u.setPasswordHash(passwordEncoder.encode(dto.password()));
         u.setStatus(UserStatus.ACTIVE);
         u.setDateOfBirth(dto.dateOfBirth());
-
-        var roles = (dto.roles() == null || dto.roles().isEmpty())
-                ? EnumSet.of(UserRole.KAMERAL)
-                : EnumSet.copyOf(dto.roles());
-        u.setRoles(roles);
-
+        u.setRoles((dto.roles()==null || dto.roles().isEmpty())
+                ? EnumSet.of(UserRole.KAMERAL) : EnumSet.copyOf(dto.roles()));
+        // фото при создании не передаём — останется null
         return toDto(repo.save(u));
     }
 
@@ -68,6 +85,100 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
+    // --- Листинг с пагинацией ---
+    public Page<UserDto> list(Pageable pageable) {
+        return repo.findAll(pageable).map(UserService::toDto);
+    }
+
+    // --- Текущий пользователь по sub ---
+    public UserDto getBySubject(String sub) {
+        var user = parseAsLong(sub).flatMap(repo::findById)
+                .or(() -> repo.findByEmailIgnoreCase(sub))
+                .orElseThrow(() -> new IllegalArgumentException("User not found by subject"));
+        return toDto(user);
+    }
+
+    // --- Обновление себя ---
+    @Transactional
+    public UserDto updateSelfBySubject(String sub, UserSelfUpdateDto dto) {
+        var u = parseAsLong(sub).flatMap(repo::findById)
+                .or(() -> repo.findByEmailIgnoreCase(sub))
+                .orElseThrow(() -> new IllegalArgumentException("User not found by subject"));
+
+        // проверки уникальности
+        if (repo.existsByEmailIgnoreCaseAndIdNot(dto.email().trim(), u.getId()))
+            throw new IllegalArgumentException("Email already in use");
+        var phone = requireE164(dto.phone());
+        if (repo.existsByPhoneAndIdNot(phone, u.getId()))
+            throw new IllegalArgumentException("Phone already in use");
+
+        u.setFullName(dto.fullName().trim());
+        u.setPhone(phone);
+        u.setEmail(dto.email().trim());
+        u.setDateOfBirth(dto.dateOfBirth());
+        u.setPhotoUrl(dto.photoUrl());
+        repo.saveAndFlush(u);
+        return toDto(u);
+    }
+
+    // --- Обновление пользователя админом ---
+    @Transactional
+    public UserDto adminUpdate(Long id, UserAdminUpdateDto dto) {
+        var u = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (repo.existsByEmailIgnoreCaseAndIdNot(dto.email().trim(), id))
+            throw new IllegalArgumentException("Email already in use");
+        if (repo.existsByUsernameIgnoreCaseAndIdNot(dto.username().trim(), id))
+            throw new IllegalArgumentException("Username already in use");
+        var phone = requireE164(dto.phone());
+        if (repo.existsByPhoneAndIdNot(phone, id))
+            throw new IllegalArgumentException("Phone already in use");
+
+        u.setFullName(dto.fullName().trim());
+        u.setPhone(phone);
+        u.setEmail(dto.email().trim());
+        u.setUsername(dto.username().trim());
+        u.setDateOfBirth(dto.dateOfBirth());
+        u.setPhotoUrl(dto.photoUrl());
+        if (dto.roles()!=null && !dto.roles().isEmpty()) u.setRoles(EnumSet.copyOf(dto.roles()));
+        if (dto.status()!=null) u.setStatus(dto.status());
+
+        repo.saveAndFlush(u);
+        return toDto(u);
+    }
+
+    // --- Смена пароля: уже есть (оставляем как есть) ---
+
+    // --- Смена статуса (ADMIN) ---
+    @Transactional
+    public void changeStatus(Long id, UserStatus status) {
+        var u = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        u.setStatus(status);
+        repo.saveAndFlush(u);
+        // при блокировке — инвалидируем refresh токены
+        if (status == UserStatus.BLOCKED) {
+            refreshTokenRepository.revokeAllByUserId(u.getId());
+        }
+    }
+
+    // --- Смена ролей (ADMIN) ---
+    @Transactional
+    public UserDto changeRoles(Long id, Set<UserRole> roles) {
+        var u = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        u.setRoles(roles == null || roles.isEmpty() ? EnumSet.of(UserRole.KAMERAL) : EnumSet.copyOf(roles));
+        repo.saveAndFlush(u);
+        return toDto(u);
+    }
+
+    // --- Soft delete (ADMIN) ---
+    @Transactional
+    public void delete(Long id) {
+        var u = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        repo.softDeleteById(u.getId()); // предполагается реализация в SoftDeleteRepository
+        refreshTokenRepository.revokeAllByUserId(u.getId());
+    }
+
+    // --- Смена пароля (как было) ---
     @Transactional
     public void changePassword(Long id, String newPassword) {
         var u = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -77,47 +188,19 @@ public class UserService {
         u.setPasswordHash(passwordEncoder.encode(newPassword.trim()));
         u.setUpdatedAt(OffsetDateTime.now());
         repo.saveAndFlush(u);
-        toDto(u);
-
         refreshTokenRepository.revokeAllByUserId(u.getId());
-    }
-
-    public UserDto getBySubject(String sub) {
-        var user = parseAsLong(sub)
-                .flatMap(repo::findById)
-                .or(() -> repo.findByEmailIgnoreCase(sub))
-                .orElseThrow(() -> new IllegalArgumentException("User not found by subject"));
-        return toDto(user);
     }
 
     @Transactional
     public void changePasswordBySubject(String sub, String newPassword) {
-        var user = parseAsLong(sub)
-                .flatMap(repo::findById)
+        var user = parseAsLong(sub).flatMap(repo::findById)
                 .or(() -> repo.findByEmailIgnoreCase(sub))
                 .orElseThrow(() -> new IllegalArgumentException("User not found by subject"));
-        if (newPassword == null || newPassword.trim().length() < 8) {
+        if (newPassword == null || newPassword.trim().length() < 8)
             throw new IllegalArgumentException("Password must be at least 8 characters");
-        }
         user.setPasswordHash(passwordEncoder.encode(newPassword.trim()));
         user.setUpdatedAt(OffsetDateTime.now());
         repo.saveAndFlush(user);
-    }
-
-    private static java.util.Optional<Long> parseAsLong(String val) {
-        try {
-            return java.util.Optional.of(Long.parseLong(val));
-        } catch (Exception ignored) {
-            return java.util.Optional.empty();
-        }
-    }
-
-    private static UserDto toDto(AppUser u) {
-        return new UserDto(
-                u.getId(), u.getFullName(), u.getPhone(), u.getEmail(), u.getUsername(),
-                u.getRoles(), u.getStatus(), u.getCreatedAt(), u.getUpdatedAt(), u.getLastLoginAt(),
-                u.getDateOfBirth(), u.getAge()
-        );
     }
 
     @Transactional

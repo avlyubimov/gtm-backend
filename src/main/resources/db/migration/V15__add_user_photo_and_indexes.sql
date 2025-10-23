@@ -1,0 +1,2 @@
+ALTER TABLE gtm_user
+    ADD COLUMN IF NOT EXISTS photo_url TEXT;

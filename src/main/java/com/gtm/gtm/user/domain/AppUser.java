@@ -69,6 +69,9 @@ public class AppUser extends SoftDeletable {
         return dateOfBirth == null ? null : Period.between(dateOfBirth, LocalDate.now()).getYears();
     }
 
+    @Column(name = "photo_url")
+    private String photoUrl;
+
     @PrePersist
     void prePersist() {
         var now = OffsetDateTime.now();
