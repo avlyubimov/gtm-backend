@@ -32,7 +32,6 @@ public class UserController {
 
     private final UserService service;
 
-    // --- Создать пользователя (ADMIN) — как было ---
     @Operation(summary = "Создать пользователя")
     @ApiResponse(responseCode = "201", description = "Created",
             content = @Content(mediaType = "application/json",
@@ -44,7 +43,6 @@ public class UserController {
         return ResponseEntity.created(URI.create("/api/users/" + created.id())).body(created);
     }
 
-    // --- Получить пользователя по id (ADMIN) — как было ---
     @Operation(summary = "Получить пользователя по id")
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -52,14 +50,12 @@ public class UserController {
         return service.get(id);
     }
 
-    // --- Текущий пользователь (по JWT) — как было ---
     @Operation(summary = "Текущий пользователь (по JWT)")
     @GetMapping("/me")
     public UserDto me(@AuthenticationPrincipal Jwt jwt) {
         return service.getBySubject(jwt.getSubject());
     }
 
-    // --- Обновить СЕБЯ ---
     @Operation(summary = "Обновить собственный профиль")
     @PutMapping("/me")
     public UserDto updateMe(@AuthenticationPrincipal Jwt jwt,
@@ -67,7 +63,6 @@ public class UserController {
         return service.updateSelfBySubject(jwt.getSubject(), dto);
     }
 
-    // --- Смена своего пароля — как было ---
     @Operation(summary = "Сменить свой пароль")
     @PostMapping("/me/password")
     public ResponseEntity<Void> changeOwnPassword(@AuthenticationPrincipal Jwt jwt,
@@ -76,17 +71,17 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    // --- Листинг пользователей (ADMIN) ---
-    @Operation(summary = "Список пользователей (пагинация)")
+    @Operation(summary = "Список пользователей (фильтры, пагинация, сортировка)")
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public Page<UserDto> list(
+            UserFilter filter,
             @Parameter(hidden = true)
-            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        return service.list(pageable);
+            @PageableDefault(size = 20, sort = "id") Pageable pageable
+    ) {
+        return service.list(filter, pageable);
     }
 
-    // --- Обновление пользователя (ADMIN) ---
     @Operation(summary = "Обновить пользователя (ADMIN)")
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -94,7 +89,6 @@ public class UserController {
         return service.adminUpdate(id, dto);
     }
 
-    // --- Смена статуса (ADMIN) ---
     @Operation(summary = "Сменить статус пользователя (ADMIN)")
     @PostMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
@@ -104,7 +98,6 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    // --- Смена ролей (ADMIN) ---
     @Operation(summary = "Сменить роли пользователя (ADMIN)")
     @PostMapping("/{id}/roles")
     @PreAuthorize("hasRole('ADMIN')")
@@ -112,7 +105,6 @@ public class UserController {
         return service.changeRoles(id, req.roles());
     }
 
-    // --- Soft delete (ADMIN) ---
     @Operation(summary = "Удалить пользователя (soft delete, ADMIN)")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -121,7 +113,6 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    // --- Справочник ролей ---
     @Operation(summary = "Список ролей (ключ -> русское название)")
     @GetMapping("/roles")
     @PreAuthorize("hasRole('ADMIN')")
@@ -133,7 +124,6 @@ public class UserController {
         return m;
     }
 
-    // --- Справочник статусов ---
     @Operation(summary = "Список статусов (ключ -> русское название)")
     @GetMapping("/statuses")
     @PreAuthorize("hasRole('ADMIN')")

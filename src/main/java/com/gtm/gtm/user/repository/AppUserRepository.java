@@ -2,10 +2,13 @@ package com.gtm.gtm.user.repository;
 
 import com.gtm.gtm.common.repository.SoftDeleteRepository;
 import com.gtm.gtm.user.domain.AppUser;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.Optional;
 
-public interface AppUserRepository extends SoftDeleteRepository<AppUser, Long> {
+public interface AppUserRepository
+        extends SoftDeleteRepository<AppUser, Long>, JpaSpecificationExecutor<AppUser> {
+
     boolean existsByEmailIgnoreCase(String email);
     boolean existsByUsernameIgnoreCase(String username);
     boolean existsByPhone(String phone);

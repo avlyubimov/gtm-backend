@@ -14,21 +14,50 @@ public class ClientInfo {
     }
 
     public static String deviceFromUA(String ua) {
-        if (ua == null) return "Unknown";
+        if (ua == null || ua.isBlank()) return "Unknown";
         String u = ua.toLowerCase();
+
+        boolean isAndroid = u.contains("android");
+        boolean isIOS = u.contains("iphone") || u.contains("ipad") || u.contains("ipod") || u.contains("ios");
+
+        boolean hasOkHttp = u.contains("okhttp");
+        boolean hasDalvik = u.contains("dalvik");
+        boolean hasCFNetwork = u.contains("cfnetwork");
+        boolean hasDarwin = u.contains("darwin");
+
+        boolean hasChrome = u.contains("chrome/") || u.contains("crios/");
+        boolean hasSafari = u.contains("safari/");
+        boolean hasFirefox = u.contains("firefox/") || u.contains("fxios/");
+        boolean hasEdge = u.contains("edg/") || u.contains("edg ");
+        boolean hasOpera = u.contains("opera") || u.contains("opr/");
+
+        boolean isWebViewAndroid = isAndroid && (u.contains("; wv") || u.contains(" wv)") || u.contains("wv)") || u.contains("version/"));
+        boolean isWebViewIOS = isIOS && !hasSafari;
+        boolean isWebView = isWebViewAndroid || isWebViewIOS;
+
+        boolean looksLikeBrowser = hasChrome || hasSafari || hasFirefox || hasEdge || hasOpera;
+
+        if (isAndroid && (hasOkHttp || hasDalvik || (!looksLikeBrowser) || isWebViewAndroid)) {
+            return isWebViewAndroid ? "Android App (WebView)" : "Android App";
+        }
+
+        if (isIOS && (hasCFNetwork || hasDarwin || (!looksLikeBrowser) || isWebViewIOS)) {
+            return isWebViewIOS ? "iOS App (WebView)" : "iOS App";
+        }
+
         String os =
-                u.contains("iphone") || u.contains("ios") ? "iOS" :
-                        u.contains("android") ? "Android" :
-                                u.contains("windows") ? "Windows" :
-                                        u.contains("mac os x") || u.contains("macintosh") ? "macOS" :
-                                                u.contains("linux") ? "Linux" : "Other";
+                isIOS ? "iOS" :
+                isAndroid ? "Android" :
+                (u.contains("windows") ? "Windows" :
+                 (u.contains("mac os x") || u.contains("macintosh")) ? "macOS" :
+                 (u.contains("linux") ? "Linux" : "Other"));
 
         String browser =
-                u.contains("edg/") || u.contains("edg ") ? "Edge" :
-                        u.contains("chrome/") && !u.contains("chromium") ? "Chrome" :
-                                u.contains("safari/") && !u.contains("chrome/") ? "Safari" :
-                                        u.contains("firefox/") ? "Firefox" :
-                                                u.contains("opera") || u.contains("opr/") ? "Opera" : "Browser";
+                hasEdge ? "Edge" :
+                (hasChrome && !u.contains("chromium")) ? "Chrome" :
+                (hasSafari && !hasChrome) ? "Safari" :
+                hasFirefox ? "Firefox" :
+                hasOpera ? "Opera" : "Browser";
 
         return browser + " on " + os;
     }

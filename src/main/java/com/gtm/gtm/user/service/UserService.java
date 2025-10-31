@@ -5,11 +5,9 @@ import com.gtm.gtm.auth.repository.RefreshTokenRepository;
 import com.gtm.gtm.user.domain.AppUser;
 import com.gtm.gtm.user.domain.UserRole;
 import com.gtm.gtm.user.domain.UserStatus;
-import com.gtm.gtm.user.dto.UserAdminUpdateDto;
-import com.gtm.gtm.user.dto.UserCreateDto;
-import com.gtm.gtm.user.dto.UserDto;
-import com.gtm.gtm.user.dto.UserSelfUpdateDto;
+import com.gtm.gtm.user.dto.*;
 import com.gtm.gtm.user.repository.AppUserRepository;
+import com.gtm.gtm.user.repository.UserSpecs;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,7 +31,6 @@ public class UserService {
         this.refreshTokenRepository = refreshTokenRepository;
     }
 
-    // --- Вспомогательные методы валидации ---
     private static String requireE164(String phone) {
         var p = phone == null ? "" : phone.trim();
         if (!p.matches("^\\+\\d{7,15}$"))
@@ -54,7 +51,6 @@ public class UserService {
         catch (Exception ignored) { return java.util.Optional.empty(); }
     }
 
-    // --- Создание как было ---
     @Transactional
     public UserDto create(UserCreateDto dto) {
         if (repo.existsByEmailIgnoreCase(dto.email()))
@@ -76,7 +72,7 @@ public class UserService {
         u.setDateOfBirth(dto.dateOfBirth());
         u.setRoles((dto.roles()==null || dto.roles().isEmpty())
                 ? EnumSet.of(UserRole.KAMERAL) : EnumSet.copyOf(dto.roles()));
-        // фото при создании не передаём — останется null
+
         return toDto(repo.save(u));
     }
 
@@ -85,12 +81,10 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
-    // --- Листинг с пагинацией ---
     public Page<UserDto> list(Pageable pageable) {
         return repo.findAll(pageable).map(UserService::toDto);
     }
 
-    // --- Текущий пользователь по sub ---
     public UserDto getBySubject(String sub) {
         var user = parseAsLong(sub).flatMap(repo::findById)
                 .or(() -> repo.findByEmailIgnoreCase(sub))
@@ -98,14 +92,12 @@ public class UserService {
         return toDto(user);
     }
 
-    // --- Обновление себя ---
     @Transactional
     public UserDto updateSelfBySubject(String sub, UserSelfUpdateDto dto) {
         var u = parseAsLong(sub).flatMap(repo::findById)
                 .or(() -> repo.findByEmailIgnoreCase(sub))
                 .orElseThrow(() -> new IllegalArgumentException("User not found by subject"));
 
-        // проверки уникальности
         if (repo.existsByEmailIgnoreCaseAndIdNot(dto.email().trim(), u.getId()))
             throw new IllegalArgumentException("Email already in use");
         var phone = requireE164(dto.phone());
@@ -121,7 +113,6 @@ public class UserService {
         return toDto(u);
     }
 
-    // --- Обновление пользователя админом ---
     @Transactional
     public UserDto adminUpdate(Long id, UserAdminUpdateDto dto) {
         var u = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -147,21 +138,17 @@ public class UserService {
         return toDto(u);
     }
 
-    // --- Смена пароля: уже есть (оставляем как есть) ---
-
-    // --- Смена статуса (ADMIN) ---
     @Transactional
     public void changeStatus(Long id, UserStatus status) {
         var u = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
         u.setStatus(status);
         repo.saveAndFlush(u);
-        // при блокировке — инвалидируем refresh токены
+
         if (status == UserStatus.BLOCKED) {
             refreshTokenRepository.revokeAllByUserId(u.getId());
         }
     }
 
-    // --- Смена ролей (ADMIN) ---
     @Transactional
     public UserDto changeRoles(Long id, Set<UserRole> roles) {
         var u = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -170,15 +157,13 @@ public class UserService {
         return toDto(u);
     }
 
-    // --- Soft delete (ADMIN) ---
     @Transactional
     public void delete(Long id) {
         var u = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
-        repo.softDeleteById(u.getId()); // предполагается реализация в SoftDeleteRepository
+        repo.softDeleteById(u.getId());
         refreshTokenRepository.revokeAllByUserId(u.getId());
     }
 
-    // --- Смена пароля (как было) ---
     @Transactional
     public void changePassword(Long id, String newPassword) {
         var u = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -221,5 +206,10 @@ public class UserService {
         u.setRoles(EnumSet.of(UserRole.KAMERAL));
 
         return toDto(repo.save(u));
+    }
+
+    public Page<UserDto> list(UserFilter filter, Pageable pageable) {
+        return repo.findAll(UserSpecs.byFilter(filter), pageable)
+                .map(UserService::toDto);
     }
 }

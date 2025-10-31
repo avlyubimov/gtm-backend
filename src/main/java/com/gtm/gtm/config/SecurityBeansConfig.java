@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -33,30 +34,35 @@ import java.util.stream.Collectors;
 @EnableMethodSecurity
 @Configuration
 public class SecurityBeansConfig {
+
     @Bean
     public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
 
     private static final String[] SWAGGER = {
-            "/v3/api-docs",
-            "/v3/api-docs/**",
-            "/swagger-ui.html",
-            "/swagger-ui/**",
-            "/docs",
-            "/docs/**"
+            "/v3/api-docs", "/v3/api-docs/**",
+            "/swagger-ui.html", "/swagger-ui/**",
+            "/docs", "/docs/**"
     };
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf(AbstractHttpConfigurer::disable);
-        http.authorizeHttpRequests(reg -> reg
-                .requestMatchers(SWAGGER).permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
-                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                .anyRequest().authenticated()
-        );
-        http.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-        http.oauth2ResourceServer(o -> o.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter())));
-        return http.build();
+        return http
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(Customizer.withDefaults())
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(reg -> reg
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // ВАЖНО: preflight
+                        .requestMatchers(SWAGGER).permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/refresh"
+                        ).permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .oauth2ResourceServer(o -> o.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter())))
+                .build();
     }
 
     @Bean
@@ -73,9 +79,7 @@ public class SecurityBeansConfig {
                     .map(org.springframework.security.core.authority.SimpleGrantedAuthority::new)
                     .collect(Collectors.toSet());
 
-
-            return User
-                    .withUsername(u.getUsername())
+            return User.withUsername(u.getUsername())
                     .password(u.getPasswordHash())
                     .authorities(authorities)
                     .accountExpired(false)
@@ -113,13 +117,16 @@ public class SecurityBeansConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         var cfg = new CorsConfiguration();
 
-        cfg.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://localhost:8080",
-                "https://gtm.local"
+        cfg.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "https://gtm.local",
+                "http://*.local",
+                "https://*.local"
         ));
+
         cfg.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
-        cfg.setAllowedHeaders(List.of("Authorization","Content-Type","X-API-KEY","Origin","Accept"));
+        cfg.setAllowedHeaders(List.of("*"));
         cfg.setExposedHeaders(List.of("Authorization"));
         cfg.setAllowCredentials(true);
         cfg.setMaxAge(Duration.ofHours(1));
@@ -128,5 +135,4 @@ public class SecurityBeansConfig {
         source.registerCorsConfiguration("/**", cfg);
         return source;
     }
-
 }
