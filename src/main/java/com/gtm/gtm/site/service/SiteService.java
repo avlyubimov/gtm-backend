@@ -1,6 +1,8 @@
 package com.gtm.gtm.site.service;
 
 import com.gtm.gtm.contract.repository.ContractRepository;
+import com.gtm.gtm.common.error.ConflictException;
+import com.gtm.gtm.common.error.NotFoundException;
 import com.gtm.gtm.site.domain.Site;
 import com.gtm.gtm.site.dto.SiteCreateDto;
 import com.gtm.gtm.site.dto.SiteDto;
@@ -32,16 +34,16 @@ public class SiteService {
 
     public SiteDto get(Long id) {
         return repo.findById(id).map(SiteService::toDto)
-                .orElseThrow(() -> new IllegalArgumentException("Site not found"));
+                .orElseThrow(() -> new NotFoundException("Site not found"));
     }
 
     @Transactional
     public SiteDto create(SiteCreateDto dto) {
         var contract = contractRepo.findById(dto.contractId())
-                .orElseThrow(() -> new IllegalArgumentException("Contract not found"));
+                .orElseThrow(() -> new NotFoundException("Contract not found"));
 
         if (repo.existsByContract_IdAndCodeIgnoreCase(dto.contractId(), dto.code())) {
-            throw new IllegalArgumentException("Site code already exists in this contract");
+            throw new ConflictException("Site code already exists in this contract");
         }
 
         var s = new Site();
@@ -55,11 +57,11 @@ public class SiteService {
 
     @Transactional
     public SiteDto update(Long id, SiteUpdateDto dto) {
-        var s = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("Site not found"));
+        var s = repo.findById(id).orElseThrow(() -> new NotFoundException("Site not found"));
 
         if (!s.getCode().equalsIgnoreCase(dto.code())
                 && repo.existsByContract_IdAndCodeIgnoreCase(s.getContract().getId(), dto.code())) {
-            throw new IllegalArgumentException("Site code already exists in this contract");
+            throw new ConflictException("Site code already exists in this contract");
         }
 
         s.setName(dto.name().trim());
@@ -70,7 +72,7 @@ public class SiteService {
 
     @Transactional
     public void delete(Long id) {
-        if (!repo.existsById(id)) throw new IllegalArgumentException("Site not found");
+        if (!repo.existsById(id)) throw new NotFoundException("Site not found");
         repo.deleteById(id);
     }
 

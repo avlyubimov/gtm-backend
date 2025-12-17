@@ -8,6 +8,9 @@ import com.gtm.gtm.user.domain.UserStatus;
 import com.gtm.gtm.user.dto.*;
 import com.gtm.gtm.user.repository.AppUserRepository;
 import com.gtm.gtm.user.repository.UserSpecs;
+import com.gtm.gtm.common.error.ConflictException;
+import com.gtm.gtm.common.error.NotFoundException;
+import com.gtm.gtm.common.error.ValidationException;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,7 +37,7 @@ public class UserService {
     private static String requireE164(String phone) {
         var p = phone == null ? "" : phone.trim();
         if (!p.matches("^\\+\\d{7,15}$"))
-            throw new IllegalArgumentException("Phone must be E.164, e.g. +77011234567");
+            throw new ValidationException("Phone must be E.164, e.g. +77011234567");
         return p;
     }
 
@@ -54,13 +57,13 @@ public class UserService {
     @Transactional
     public UserDto create(UserCreateDto dto) {
         if (repo.existsByEmailIgnoreCase(dto.email()))
-            throw new IllegalArgumentException("Email already in use");
+            throw new ConflictException("Email already in use");
         if (repo.existsByUsernameIgnoreCase(dto.username()))
-            throw new IllegalArgumentException("Username already in use");
+            throw new ConflictException("Username already in use");
 
         String phone = requireE164(dto.phone());
         if (repo.existsByPhone(phone))
-            throw new IllegalArgumentException("Phone already in use");
+            throw new ConflictException("Phone already in use");
 
         var u = new AppUser();
         u.setFullName(dto.fullName().trim());
@@ -78,7 +81,7 @@ public class UserService {
 
     public UserDto get(Long id) {
         return repo.findById(id).map(UserService::toDto)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     public Page<UserDto> list(Pageable pageable) {
@@ -88,7 +91,7 @@ public class UserService {
     public UserDto getBySubject(String sub) {
         var user = parseAsLong(sub).flatMap(repo::findById)
                 .or(() -> repo.findByEmailIgnoreCase(sub))
-                .orElseThrow(() -> new IllegalArgumentException("User not found by subject"));
+                .orElseThrow(() -> new NotFoundException("User not found by subject"));
         return toDto(user);
     }
 
@@ -96,13 +99,13 @@ public class UserService {
     public UserDto updateSelfBySubject(String sub, UserSelfUpdateDto dto) {
         var u = parseAsLong(sub).flatMap(repo::findById)
                 .or(() -> repo.findByEmailIgnoreCase(sub))
-                .orElseThrow(() -> new IllegalArgumentException("User not found by subject"));
+                .orElseThrow(() -> new NotFoundException("User not found by subject"));
 
         if (repo.existsByEmailIgnoreCaseAndIdNot(dto.email().trim(), u.getId()))
-            throw new IllegalArgumentException("Email already in use");
+            throw new ConflictException("Email already in use");
         var phone = requireE164(dto.phone());
         if (repo.existsByPhoneAndIdNot(phone, u.getId()))
-            throw new IllegalArgumentException("Phone already in use");
+            throw new ConflictException("Phone already in use");
 
         u.setFullName(dto.fullName().trim());
         u.setPhone(phone);
@@ -115,15 +118,15 @@ public class UserService {
 
     @Transactional
     public UserDto adminUpdate(Long id, UserAdminUpdateDto dto) {
-        var u = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        var u = repo.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
 
         if (repo.existsByEmailIgnoreCaseAndIdNot(dto.email().trim(), id))
-            throw new IllegalArgumentException("Email already in use");
+            throw new ConflictException("Email already in use");
         if (repo.existsByUsernameIgnoreCaseAndIdNot(dto.username().trim(), id))
-            throw new IllegalArgumentException("Username already in use");
+            throw new ConflictException("Username already in use");
         var phone = requireE164(dto.phone());
         if (repo.existsByPhoneAndIdNot(phone, id))
-            throw new IllegalArgumentException("Phone already in use");
+            throw new ConflictException("Phone already in use");
 
         u.setFullName(dto.fullName().trim());
         u.setPhone(phone);
@@ -140,7 +143,7 @@ public class UserService {
 
     @Transactional
     public void changeStatus(Long id, UserStatus status) {
-        var u = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        var u = repo.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
         u.setStatus(status);
         repo.saveAndFlush(u);
 
@@ -151,7 +154,7 @@ public class UserService {
 
     @Transactional
     public UserDto changeRoles(Long id, Set<UserRole> roles) {
-        var u = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        var u = repo.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
         u.setRoles(roles == null || roles.isEmpty() ? EnumSet.of(UserRole.KAMERAL) : EnumSet.copyOf(roles));
         repo.saveAndFlush(u);
         return toDto(u);
@@ -159,16 +162,16 @@ public class UserService {
 
     @Transactional
     public void delete(Long id) {
-        var u = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        var u = repo.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
         repo.softDeleteById(u.getId());
         refreshTokenRepository.revokeAllByUserId(u.getId());
     }
 
     @Transactional
     public void changePassword(Long id, String newPassword) {
-        var u = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        var u = repo.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
         if (newPassword == null || newPassword.trim().length() < 8) {
-            throw new IllegalArgumentException("Password must be at least 8 characters");
+            throw new ValidationException("Password must be at least 8 characters");
         }
         u.setPasswordHash(passwordEncoder.encode(newPassword.trim()));
         u.setUpdatedAt(OffsetDateTime.now());
@@ -180,9 +183,9 @@ public class UserService {
     public void changePasswordBySubject(String sub, String newPassword) {
         var user = parseAsLong(sub).flatMap(repo::findById)
                 .or(() -> repo.findByEmailIgnoreCase(sub))
-                .orElseThrow(() -> new IllegalArgumentException("User not found by subject"));
+                .orElseThrow(() -> new NotFoundException("User not found by subject"));
         if (newPassword == null || newPassword.trim().length() < 8)
-            throw new IllegalArgumentException("Password must be at least 8 characters");
+            throw new ValidationException("Password must be at least 8 characters");
         user.setPasswordHash(passwordEncoder.encode(newPassword.trim()));
         user.setUpdatedAt(OffsetDateTime.now());
         repo.saveAndFlush(user);
@@ -190,10 +193,10 @@ public class UserService {
 
     @Transactional
     public UserDto register(RegisterDto dto) {
-        if (repo.existsByEmailIgnoreCase(dto.email())) throw new IllegalArgumentException("Email already in use");
-        if (repo.existsByUsernameIgnoreCase(dto.username())) throw new IllegalArgumentException("Username already in use");
+        if (repo.existsByEmailIgnoreCase(dto.email())) throw new ConflictException("Email already in use");
+        if (repo.existsByUsernameIgnoreCase(dto.username())) throw new ConflictException("Username already in use");
         String phone = requireE164(dto.phone());
-        if (repo.existsByPhone(phone)) throw new IllegalArgumentException("Phone already in use");
+        if (repo.existsByPhone(phone)) throw new ConflictException("Phone already in use");
 
         var u = new AppUser();
         u.setFullName(dto.fullName().trim());

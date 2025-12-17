@@ -7,11 +7,12 @@ import com.gtm.gtm.point.dto.PointCreateDto;
 import com.gtm.gtm.point.dto.PointDto;
 import com.gtm.gtm.point.dto.PointUpdateDto;
 import com.gtm.gtm.point.repository.PointRepository;
-import jakarta.transaction.Transactional;
+import com.gtm.gtm.common.error.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 
@@ -25,7 +26,7 @@ public class PointService {
     @Transactional
     public PointDto create(PointCreateDto dto) {
         var facility = facilityRepo.findById(dto.facilityId())
-                .orElseThrow(() -> new IllegalArgumentException("Facility not found"));
+                .orElseThrow(() -> new NotFoundException("Facility not found"));
 
         var now = OffsetDateTime.now();
 
@@ -39,13 +40,17 @@ public class PointService {
         return toDto(repo.save(p));
     }
 
+    @Transactional(readOnly = true)
     public PointDto get(Long id) {
-        var p = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("Point not found"));
+        var p = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Point not found"));
         return toDto(p);
     }
 
+    @Transactional(readOnly = true)
     public Page<PointDto> list(Long facilityId, PointType type, Pageable pageable) {
         Page<Point> page;
+
         if (facilityId != null && type != null) {
             page = repo.findAllByFacility_IdAndType(facilityId, type, pageable);
         } else if (facilityId != null) {
@@ -55,15 +60,19 @@ public class PointService {
         } else {
             page = repo.findAll(pageable);
         }
+
         return page.map(PointService::toDto);
     }
 
     @Transactional
     public PointDto update(Long id, PointUpdateDto dto) {
-        var p = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("Point not found"));
+        var p = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Point not found"));
+
         p.setName(dto.name().trim());
         p.setType(dto.type());
         p.setUpdatedAt(OffsetDateTime.now());
+
         return toDto(repo.save(p));
     }
 

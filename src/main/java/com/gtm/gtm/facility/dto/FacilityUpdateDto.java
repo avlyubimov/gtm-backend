@@ -4,5 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 
 public record FacilityUpdateDto(
         @NotBlank String name,
-        @NotBlank String code
+        @NotBlank String code,
+        Long parentId
 ) {}

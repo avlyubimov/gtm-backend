@@ -7,6 +7,7 @@ import com.gtm.gtm.measurement.domain.MeasurementType;
 import com.gtm.gtm.measurement.dto.MeasurementCreateDto;
 import com.gtm.gtm.measurement.dto.MeasurementDto;
 import com.gtm.gtm.measurement.dto.MeasurementUpdateDto;
+import com.gtm.gtm.common.error.NotFoundException;
 import com.gtm.gtm.measurement.repository.MeasurementRepository;
 import com.gtm.gtm.point.repository.PointRepository;
 import jakarta.transaction.Transactional;
@@ -35,7 +36,7 @@ public class MeasurementService {
 
     public MeasurementDto get(Long id) {
         return repo.findById(id).map(this::toDto)
-                .orElseThrow(() -> new IllegalArgumentException("Measurement not found"));
+                .orElseThrow(() -> new NotFoundException("Measurement not found"));
     }
 
     @Transactional
@@ -54,7 +55,7 @@ public class MeasurementService {
 
     @Transactional
     public MeasurementDto update(Long id, MeasurementUpdateDto dto) {
-        var m = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("Measurement not found"));
+        var m = repo.findById(id).orElseThrow(() -> new NotFoundException("Measurement not found"));
         m.setType(dto.type());
         m.setPayload(dto.payload());
         if (dto.measuredAt() != null) m.setMeasuredAt(dto.measuredAt());

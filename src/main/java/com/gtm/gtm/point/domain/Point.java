@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.OffsetDateTime;
 
@@ -17,6 +18,7 @@ import java.time.OffsetDateTime;
                 @UniqueConstraint(name = "uq_point_facility_type_name",
                         columnNames = {"facility_id","type","name"})
         })
+@SQLRestriction("is_deleted = false")
 public class Point extends SoftDeletable {
 
     @NotBlank

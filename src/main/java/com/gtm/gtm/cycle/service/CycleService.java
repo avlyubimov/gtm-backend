@@ -7,6 +7,9 @@ import com.gtm.gtm.cycle.dto.CycleDto;
 import com.gtm.gtm.cycle.dto.CycleUpdateDto;
 import com.gtm.gtm.cycle.repository.CycleRepository;
 import com.gtm.gtm.facility.repository.FacilityRepository;
+import com.gtm.gtm.common.error.ConflictException;
+import com.gtm.gtm.common.error.NotFoundException;
+import com.gtm.gtm.common.error.ValidationException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -30,14 +33,14 @@ public class CycleService {
 
     public CycleDto get(Long id) {
         return repo.findById(id).map(CycleService::toDto)
-                .orElseThrow(() -> new IllegalArgumentException("Cycle not found"));
+                .orElseThrow(() -> new NotFoundException("Cycle not found"));
     }
 
     @Transactional
     public CycleDto create(CycleCreateDto dto) {
         validate(dto.periodStart(), dto.periodEnd());
         var facility = facilityRepo.findById(dto.facilityId())
-                .orElseThrow(() -> new IllegalArgumentException("Facility not found"));
+                .orElseThrow(() -> new NotFoundException("Facility not found"));
 
         var now = OffsetDateTime.now();
         var c = new Cycle();
@@ -56,7 +59,7 @@ public class CycleService {
     @Transactional
     public CycleDto update(Long id, CycleUpdateDto dto) {
         validate(dto.periodStart(), dto.periodEnd());
-        var c = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("Cycle not found"));
+        var c = repo.findById(id).orElseThrow(() -> new NotFoundException("Cycle not found"));
 
         if (dto.status() == CycleStatus.ACTIVE && c.getStatus() != CycleStatus.ACTIVE) {
             repo.closeActiveByFacility(c.getFacility().getId());
@@ -76,7 +79,7 @@ public class CycleService {
 
     @Transactional
     public CycleDto activate(Long id) {
-        var c = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("Cycle not found"));
+        var c = repo.findById(id).orElseThrow(() -> new NotFoundException("Cycle not found"));
         repo.closeActiveByFacility(c.getFacility().getId());
         c.setStatus(CycleStatus.ACTIVE);
         c.setUpdatedAt(OffsetDateTime.now());
@@ -84,7 +87,7 @@ public class CycleService {
     }
 
     private static void validate(OffsetDateTime from, OffsetDateTime to) {
-        if (!to.isAfter(from)) throw new IllegalArgumentException("periodEnd must be after periodStart");
+        if (!to.isAfter(from)) throw new ValidationException("periodEnd must be after periodStart");
     }
 
     private static CycleDto toDto(Cycle c) {
@@ -97,7 +100,7 @@ public class CycleService {
 
     @Transactional
     public CycleDto changeStatus(Long id, CycleStatus newStatus) {
-        var c = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("Cycle not found"));
+        var c = repo.findById(id).orElseThrow(() -> new NotFoundException("Cycle not found"));
         if (c.getStatus() == newStatus) return toDto(c);
 
         if (newStatus == CycleStatus.ACTIVE) {
@@ -110,7 +113,7 @@ public class CycleService {
         try {
             return toDto(repo.saveAndFlush(c));
         } catch (DataIntegrityViolationException e) {
-            throw new IllegalStateException("Another ACTIVE cycle already exists for this facility", e);
+            throw new ConflictException("Another ACTIVE cycle already exists for this facility", e);
         }
     }
 }

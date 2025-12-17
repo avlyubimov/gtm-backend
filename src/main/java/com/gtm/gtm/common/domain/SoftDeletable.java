@@ -3,14 +3,12 @@ package com.gtm.gtm.common.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.Where;
 
 import java.time.OffsetDateTime;
 
 @MappedSuperclass
 @Getter
 @Setter
-@Where(clause = "is_deleted = false")
 public abstract class SoftDeletable {
 
     @Id

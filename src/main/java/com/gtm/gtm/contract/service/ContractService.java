@@ -4,6 +4,8 @@ import com.gtm.gtm.contract.domain.Contract;
 import com.gtm.gtm.contract.dto.ContractCreateDto;
 import com.gtm.gtm.contract.dto.ContractDto;
 import com.gtm.gtm.contract.dto.ContractUpdateDto;
+import com.gtm.gtm.common.error.ConflictException;
+import com.gtm.gtm.common.error.NotFoundException;
 import com.gtm.gtm.contract.repository.ContractRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -27,13 +29,13 @@ public class ContractService {
 
     public ContractDto get(Long id) {
         return repo.findById(id).map(ContractService::toDto)
-                .orElseThrow(() -> new IllegalArgumentException("Contract not found"));
+                .orElseThrow(() -> new NotFoundException("Contract not found"));
     }
 
     @Transactional
     public ContractDto create(ContractCreateDto dto) {
         if (repo.existsByNumberIgnoreCase(dto.number()))
-            throw new IllegalArgumentException("Contract number already exists");
+            throw new ConflictException("Contract number already exists");
 
         var c = new Contract();
         c.setNumber(dto.number().trim());
@@ -47,9 +49,9 @@ public class ContractService {
 
     @Transactional
     public ContractDto update(Long id, ContractUpdateDto dto) {
-        var c = repo.findById(id).orElseThrow(() -> new IllegalArgumentException("Contract not found"));
+        var c = repo.findById(id).orElseThrow(() -> new NotFoundException("Contract not found"));
         if (!c.getNumber().equalsIgnoreCase(dto.number()) && repo.existsByNumberIgnoreCase(dto.number()))
-            throw new IllegalArgumentException("Contract number already exists");
+            throw new ConflictException("Contract number already exists");
 
         c.setNumber(dto.number().trim());
         c.setSignedAt(dto.signedAt());
@@ -61,7 +63,7 @@ public class ContractService {
 
     @Transactional
     public void delete(Long id) {
-        if (!repo.existsById(id)) throw new IllegalArgumentException("Contract not found");
+        if (!repo.existsById(id)) throw new NotFoundException("Contract not found");
         repo.deleteById(id);
     }
 

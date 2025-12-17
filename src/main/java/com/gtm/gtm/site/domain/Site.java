@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Formula;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.OffsetDateTime;
 
@@ -14,6 +15,7 @@ import java.time.OffsetDateTime;
         uniqueConstraints = @UniqueConstraint(name = "uk_site_contract_code", columnNames = {"contract_id","code"}))
 @Getter
 @Setter
+@SQLRestriction("is_deleted = false")
 public class Site extends SoftDeletable {
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
@@ -32,7 +34,7 @@ public class Site extends SoftDeletable {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
-    @Formula("(select count(*) from gtm_facility f where f.site_id = id)")
+    @Formula("(select count(*) from gtm_facility f where f.site_id = id and f.is_deleted = false)")
     private long facilityCount;
 }
 

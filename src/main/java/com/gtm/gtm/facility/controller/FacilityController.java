@@ -3,6 +3,8 @@ package com.gtm.gtm.facility.controller;
 import com.gtm.gtm.facility.dto.FacilityCreateDto;
 import com.gtm.gtm.facility.dto.FacilityDto;
 import com.gtm.gtm.facility.dto.FacilityUpdateDto;
+import com.gtm.gtm.facility.dto.FacilityTreeDto;
+import io.swagger.v3.oas.annotations.Operation;
 import com.gtm.gtm.facility.service.FacilityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -26,6 +28,15 @@ public class FacilityController {
                                   @RequestParam(required = false) String name,
                                   Pageable pageable) {
         return service.list(siteId, name, pageable);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','KAMERAL')")
+    @GetMapping("/tree")
+    @Operation(summary = "Древовидный список объектов (пагинация по корневым)")
+    public Page<FacilityTreeDto> listTree(@RequestParam(required = false) Long siteId,
+                                          @RequestParam(required = false) String name,
+                                          Pageable pageable) {
+        return service.listTree(siteId, name, pageable);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','KAMERAL')")

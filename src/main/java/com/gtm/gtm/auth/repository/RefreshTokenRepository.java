@@ -45,4 +45,15 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
            )
     """, nativeQuery = true)
     int enforceActiveLimit(@Param("userId") Long userId, @Param("limit") int limit);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("""
+        update RefreshToken r
+           set r.revoked = true
+         where r.userId = :userId
+           and r.revoked = false
+           and r.jti <> :jti
+    """)
+    int revokeAllExceptJti(@Param("userId") Long userId, @Param("jti") String jti);
 }

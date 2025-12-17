@@ -43,14 +43,15 @@ public class AssignmentController {
         service.delete(id);
     }
 
-    @GetMapping("/my/facilities")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','CAMERAL')")
-    public List<AssignmentDto> myFacilities() {
-        return service.myFacilities(currentUser.id());
+    // Список моих участков (с пагинацией)
+    @GetMapping("/my/sites")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','KAMERAL')")
+    public org.springframework.data.domain.Page<com.gtm.gtm.assigment.dto.MySiteDto> mySites(org.springframework.data.domain.Pageable pageable) {
+        return service.mySites(currentUser.id(), pageable);
     }
 
     @GetMapping("/my/todo")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','CAMERAL')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','KAMERAL')")
     public List<TodoPointDto> todo(@RequestParam @NotNull Long facilityId) {
         return service.todoPoints(currentUser.id(), facilityId);
     }

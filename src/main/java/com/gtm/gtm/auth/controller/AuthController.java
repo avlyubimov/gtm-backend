@@ -229,4 +229,19 @@ public class AuthController {
         refreshRepo.revokeAllByUserId(Long.valueOf(jwt.getSubject()));
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(summary = "Выход на всех устройствах, кроме текущего (оставить сессию с переданным jti)")
+    @PostMapping("/logout/others")
+    @PreAuthorize("isAuthenticated()")
+    @Transactional
+    public ResponseEntity<Void> logoutOthers(@RequestParam String jti,
+                                             @AuthenticationPrincipal Jwt jwt) {
+        Long userId = Long.valueOf(jwt.getSubject());
+        // Убедимся, что переданный jti принадлежит текущему пользователю и не отозван
+        var cur = refreshRepo.findByJtiAndRevokedFalse(jti)
+                .filter(r -> r.getUserId().equals(userId))
+                .orElseThrow(() -> new com.gtm.gtm.common.error.NotFoundException("Refresh token not found for current user"));
+        refreshRepo.revokeAllExceptJti(userId, cur.getJti());
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.Where;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.OffsetDateTime;
 
@@ -16,6 +16,7 @@ import java.time.OffsetDateTime;
 @Entity
 @Table(name = "gtm_cycle",
         indexes = { @Index(name = "idx_cycle_facility", columnList = "facility_id") })
+@SQLRestriction("is_deleted = false")
 public class Cycle extends SoftDeletable {
 
     @NotBlank

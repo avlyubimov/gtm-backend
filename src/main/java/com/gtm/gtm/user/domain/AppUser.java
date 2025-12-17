@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -19,6 +20,7 @@ import java.util.Set;
 @Table(name = "gtm_user")
 @Getter
 @Setter
+@SQLRestriction("is_deleted = false")
 public class AppUser extends SoftDeletable {
 
     @NotBlank
@@ -72,15 +74,4 @@ public class AppUser extends SoftDeletable {
     @Column(name = "photo_url")
     private String photoUrl;
 
-    @PrePersist
-    void prePersist() {
-        var now = OffsetDateTime.now();
-        createdAt = now;
-        updatedAt = now;
-    }
-
-    @PreUpdate
-    void preUpdate() {
-        updatedAt = OffsetDateTime.now();
-    }
 }

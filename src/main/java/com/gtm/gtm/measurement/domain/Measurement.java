@@ -9,6 +9,7 @@ import com.gtm.gtm.user.domain.AppUser;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
@@ -17,6 +18,7 @@ import java.util.Map;
 @Setter
 @Entity
 @Table(name = "gtm_measurement")
+@SQLRestriction("is_deleted = false")
 public class Measurement extends SoftDeletable {
 
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "facility_id", nullable = false)

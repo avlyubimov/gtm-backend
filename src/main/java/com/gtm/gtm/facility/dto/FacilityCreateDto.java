@@ -6,5 +6,6 @@ import jakarta.validation.constraints.NotNull;
 public record FacilityCreateDto(
         @NotNull Long siteId,
         @NotBlank String name,
-        @NotBlank String code
+        @NotBlank String code,
+        Long parentId
 ) {}
